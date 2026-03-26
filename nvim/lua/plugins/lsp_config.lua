@@ -41,12 +41,12 @@ function SetupLangServers(lspconfig)
   for server, config in pairs(get_lang_server_details()) do
     -- Autocomplete capabilities are added to all servers by default
     config.capabilities = lsp_autocmp_capabilites
-    lspconfig[server].setup(config)
+    -- lspconfig[server].setup(config)
     -- Following is a command that works with versions 0.11.4 and beyond. Some functionality 
     -- in lspconfig is deprecated and using the above line will cause errors. If moving to 
     -- a newer version, comment out the last line and uncomment the next 2 lines
-    -- vim.lsp.config[server] = config
-    -- vim.lsp.enable(server)
+    vim.lsp.config[server] = config
+    vim.lsp.enable(server)
   end
 end
 
