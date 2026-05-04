@@ -21,9 +21,9 @@ echo ---- Setting up clang ----
 
 echo -------- Cloning llvm ...
 rm -rf llvm-src
-git clone https://github.com/pratyay-p/llvm-project.git llvm-src 2>&1 > $LOG_DIR/clone-llvm.log
+git clone git@github.com:llvm/llvm-project.git llvm-src 2>&1 > $LOG_DIR/clone-llvm.log
 cd llvm-src
-git checkout llvmorg-21.0.0 # use a release version: 21.0.0
+git checkout v6.3.0 # use a release version: 21.0.0
 	
 echo -------- Configuring LLVM. Projects: clang and lld. This will take almost 5 minutes...
 cmake -G 'Unix Makefiles' -B $PWD/build/Release -S $PWD/llvm    \
@@ -155,3 +155,12 @@ CC=clang CXX=clang++ CXXFLAGS="-O3 -mtune=sapphirerapids" CFLAGS="-O3 -mtune=sap
 CC=clang CXX=clang++ CXXFLAGS="-O3 -mtune=sapphirerapids" CFLAGS="-O3 -mtune=sapphirerapids" ./b2 --prefix=$INSTALL_DIR/boost toolset=clang variant=release link=shared threading=multi --cmakedir=$INSTALL_DIR/boost/cmake --with-system build
 CC=clang CXX=clang++ CXXFLAGS="-O3 -mtune=sapphirerapids" CFLAGS="-O3 -mtune=sapphirerapids" ./b2 --prefix=$INSTALL_DIR/boost toolset=clang variant=release link=shared threading=multi --cmakedir=$INSTALL_DIR/boost/cmake --with-system install
 
+cd $SB_DIR
+
+# Installation of TBB
+git clone git@github.com:uxlfoundation/oneTBB.git
+cd oneTBB
+git checkout v2021.13.0
+cmake -B build -S . -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR/tbb -DCMAKE_C_FLAGS="-O3 -mtune=znver1" -DCMAKE_CXX_FLAGS="-O3 -mtune=znver1"
+cmake --build build --parallel $(nproc)
+cmake --install build 
