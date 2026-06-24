@@ -1,0 +1,55 @@
+colors:
+  indexed_colors:
+    - index: 16
+      color: '0xF5A97F'
+    - index: 17
+      color: '0xF4DBD6'
+  hints:
+    end:
+      background: '0xA5ADCB'
+      foreground: '0x24273A'
+    start:
+      background: '0xEED49F'
+      foreground: '0x24273A'
+  normal:
+    black: '0x494D64'
+    blue: '0x8AADF4'
+    cyan: '0x8BD5CA'
+    green: '0xA6DA95'
+    magenta: '0xF5BDE6'
+    red: '0xED8796'
+    white: '0xB8C0E0'
+    yellow: '0xEED49F'
+  primary:
+    background: '0x1f0102'
+    bright_foreground: '0xCAD3F5'
+    dim_foreground: '0xCAD3F5'
+    foreground: '0xCAD3F5'
+font:
+  size: 8.5
+  offset:
+    x: 0   # horizontal gap between characters; try -1 to tighten
+    y: -2   # vertical gap between lines; try -1 or -2 to tighten
+  glyph_offset:
+    x: 0
+    y: 0
+  bold:
+    family: 'JetBrainsMono Nerd Font Mono'
+    style: 'Bold'
+  italic:
+    family: 'JetBrainsMonoNL Nerd Font'
+    style: 'Italic'
+  normal:
+    family: 'JetBrainsMono Nerd Font Mono'
+    style: 'Regular'
+window:
+  opacity: 1
+  dimensions:
+    columns: 130
+    lines: 35
+  padding:
+    x: 5
+    y: 5
+key_bindings:
+  - key: F11
+    action: ToggleFullscreen
