@@ -6,10 +6,13 @@ vim.opt.autowrite = true
 vim.opt.cursorline = true
 vim.opt.autoread = true
 
+vim.opt.clipboard = "unnamedplus"
+
+vim.opt.expandtab = false
 vim.opt.tabstop = 4
 vim.opt.shiftwidth = 4
+vim.opt.softtabstop = 4
 vim.opt.shiftround = true
-vim.opt.expandtab = true
 
 vim.opt.undofile = false -- Disable undo across sessions - sometimes makes nvim crash
 vim.opt.swapfile = false -- Disable creation of swap files
@@ -31,3 +34,6 @@ vim.opt.spelllang = { 'en_us' }
 vim.cmd( [[set mouse=a]] )
 vim.cmd( [[set noswapfile]] )
 vim.keymap.set('n', '<leader>h', ':nohlsearch<CR>')
+
+vim.keymap.set("v", "<leader>F", ":lua vim.lsp.buf.format()<CR>")
+
