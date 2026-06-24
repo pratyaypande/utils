@@ -45,7 +45,9 @@ vim.keymap.set('n', '<leader>tv', '<Esc>:vertical terminal<CR>', {
 vim.keymap.set('t', '<Esc>', '<C-\\><C-n>', {
 })
 
+-- Color settings
 vim.api.nvim_set_hl(0, "String", { fg = '#8055EA', bold = true, italic = false })
+vim.api.nvim_set_hl(0, "Comment", { fg = "#8087A2", italic = false })
 
 -- :tnoremap <Esc> <C-\><C-n>
 
