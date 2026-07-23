@@ -46,7 +46,7 @@ vim.keymap.set('t', '<Esc>', '<C-\\><C-n>', {
 })
 
 -- Color settings
-vim.api.nvim_set_hl(0, "String", { fg = '#5D6499', bold = true, italic = false })
+vim.api.nvim_set_hl(0, "String", { fg = '#7A73E6', bold = true, italic = false })
 vim.api.nvim_set_hl(0, "Comment", { fg = "#808080", italic = false })
 
 -- :tnoremap <Esc> <C-\><C-n>
