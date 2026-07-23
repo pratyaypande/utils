@@ -10,6 +10,7 @@ vim.filetype.add({
   },
   extension = {
     inc = "cpp",
-    td = "tablegen"
+    td = "tablegen",
+    ast = "clangast"
   }
 })
