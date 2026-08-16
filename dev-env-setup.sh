@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # echo Check the script and remove this line...
-# exit 1 
-echo -------- Checking if GNU Make exists: $(which make 2>/dev/null || echo No... Bailing since further builds will fail.)
+exit 1 
+echo -------- Checking if GNU Make exists: $(which make 2>/dev/null || echo No... Bailing since further builds will fail. && return 1)
 SB_DIR=$H
 INSTALL_DIR=$SB_DIR/.local
 LOG_DIR=$SB_DIR/.logs
@@ -10,8 +10,11 @@ LOG_DIR=$SB_DIR/.logs
 mkdir -p $SB_DIR $INSTALL_DIR $LOG_DIR
 cd $SB_DIR
 
-# echo -------- Checking if clang exists: $(which clang 2>/dev/null || echo No... clang and lld will be installed.)
-clang_location=$(which clang)
+export parallel_compile_jobs_num=$(nproc)
+export parallel_link_jobs_num=$(expr $parallel_compile_job_num / 8)
+
+echo -------- Checking if clang exists: $(which clang 2>/dev/null || echo No... clang and lld will be installed.)
+clang_location=$(which clang++ || which gcc++ || )
 # echo -------- Checking if ninja exists: $(which ninja 2>/dev/null || echo No... ninja will be installed.)
 ninja_location=$(which ninja)
 # echo -------- Checking if clang exists: $(which nvim 2>/dev/null || echo No... neovim will be installed.)
@@ -23,25 +26,30 @@ echo -------- Cloning llvm ...
 rm -rf llvm-src
 git clone git@github.com:llvm/llvm-project.git llvm-src 2>&1 > $LOG_DIR/clone-llvm.log
 cd llvm-src
-git checkout v6.3.0 # use a release version: 21.0.0
+git checkout llvmorg-22.1.8 # use a release version: 21.0.0
 	
 echo -------- Configuring LLVM. Projects: clang and lld. This will take almost 5 minutes...
-cmake -G 'Unix Makefiles' -B $PWD/build/Release -S $PWD/llvm    \
+# Use GNU Make as it will be there in 
+cmake -G 'Ninja' -B $PWD/build/Release -S $PWD/llvm    \
 	-DCMAKE_BUILD_TYPE=Release                                  \
+	-DCMAKE_C_COMPILER=$(which gcc)                             \
+	-DCMAKE_CXX_COMPILER=$(which g++)                           \
 	-DCMAKE_EXPORT_COMPILE_COMMANDS=ON                          \
 	-DCMAKE_INSTALL_PREFIX=$INSTALL_DIR/llvm                    \
-	-DLLVM_ENABLE_PROJECTS="clang;lld;clang-tools-extra;openmp" \
+	-DLLVM_ENABLE_PROJECTS="clang;lld;clang-tools-extra"        \
 	-DLLVM_ENABLE_RUNTIMES="openmp"                             \
-	-DLLVM_ENABLE_ASSERTIONS=ON                                 \
+	-DLLVM_ENABLE_ASSERTIONS=OFF                                \
+	-DLLVM_ENABLE_LTO=ON                                        \
+	-DLLVM_ENABLE_PIC=ON                                        \
 	-DBUILD_SHARED_LIBS=ON                                      \
-	-DLLVM_TARGETS_TO_BUILD="X86"                               \
-	-DLLVM_PARALLEL_COMPILE_JOBS=80                             \
-	-DLLVM_PARALLEL_LINK_JOBS=8                                 \
+	-DLLVM_TARGETS_TO_BUILD="AMDGPU;X86"                        \
+	-DLLVM_PARALLEL_COMPILE_JOBS=$parallel_compile_job_num      \
+	-DLLVM_PARALLEL_LINK_JOBS=$parallel_link_jobs_num           \
 	-DLLVM_OPTIMIZED_TABLEGEN=TRUE                              \
-	2>&1 > $LOG_DIR/cmake-configure-llvm.log
-	
-echo -------- Compiling LLVM: clang and lld. This will take almost 15-20 minutes...
-cmake --build $PWD/build/Release --parallel 160 2>&1 > $LOG_DIR/cmake-build-llvm.log
+	2>&1 | tee $LOG_DIR/cmake-configure-llvm.log
+
+echo -------- Compiling LLVM: clang and lld. This will take almost 4 hours ...
+cmake --build $PWD/build/Release --parallel $parallel_compile_job_num 2>&1 | tee $LOG_DIR/cmake-build-llvm.log
 	
 echo -------- Installing clang and required tools
 cmake --install $PWD/build/Release 2>&1 > $LOG_DIR/cmake-install-llvm.log
@@ -55,10 +63,13 @@ echo -------- Cloning ninja source code ...
 rm -rf ninja-src
 git clone https://github.com/ninja-build/ninja.git ninja-src 2>&1 > $LOG_DIR/clone-ninja.log
 cd ninja-src
+git checkout v1.13.2
 
 echo -------- Configuring ninja
 cmake -B $PWD/build                           \
 	-DCMAKE_BUILD_TYPE=Release                \
+	-DCMAKE_C_COMPILER=$(which clang)         \
+	-DCMAKE_CXX_COMPILER=$(which clang++)     \
 	-DCMAKE_INSTALL_PREFIX=$INSTALL_DIR/ninja \
 	2>&1 > $LOG_DIR/configure-ninja.log
 
@@ -75,12 +86,12 @@ echo -------- Fetching gettext 0.24
 wget https://ftp.gnu.org/pub/gnu/gettext/gettext-0.24.tar.gz
 tar -xf gettext-0.24.tar.gz
 cd gettext-0.24
-CXXFLAGS="-O3 -mtune=icelake-server" CFLAGS="-O3 -mtune=icelake-server" \
+CC=$(which clang) CXX=$(which clang++) CXXFLAGS="-O3 -mtune=znver1" CFLAGS="-O3 -mtune=znver1" \
 			./configure --prefix=$INSTALL_DIR/gettext \
 			--enable-shared \
 			--enable-pic
 	
-CXXFLAGS="-O3 -mtune=icelake-server" CFLAGS="-O3 -mtune=icelake-server" make install
+CC=$(which clang) CXX=$(which clang++) CXXFLAGS="-O3 -mtune=znver1" CFLAGS="-O3 -mtune=znver1" make install
 
 cd $SB_DIR
 
@@ -91,12 +102,12 @@ git clone https://github.com/pratyay-p/neovim.git nvim-src
 cd nvim-src
 
 echo -------- Configuring neovim
-CXXFLAGS="-O3 -mtune=icelake-server" CFLAGS="-O3 -mtune=icelake-server" make                                                                        \
+CC=$(which clang) CXX=$(which clang++) CXXFLAGS="-O3 -mtune=znver1" CFLAGS="-O3 -mtune=znver1" make \
 	CMAKE_EXTRA_FLAGS="-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR/neovim" \
 	2>&1 > $LOG_DIR/configure-neovim.log
 
 echo -------- Compiling neovim
-make install 2>&1 > $LOG_DIR/compile-neovim.log
+CC=$(which clang) CXX=$(which clang++) CXXFLAGS="-O3 -mtune=znver1" CFLAGS="-O3 -mtune=znver1" make install 2>&1 > $LOG_DIR/compile-neovim.log
 
 cd $SB_DIR
 
@@ -104,8 +115,8 @@ cd $SB_DIR
 git clone https://github.com/lz4/lz4.git lz4-src
 cd lz4-src
 git checkout v1.10.0
-make -j$(nproc) CC=clang CXX=clang++ CXXFLAGS="-O3 -mtune=sapphirerapids" CFLAGS="-O3 -mtune=sapphirerapids" PREFIX=$INSTALL_DIR/lz4
-make -j$(nproc) CC=clang CXX=clang++ CXXFLAGS="-O3 -mtune=sapphirerapids" CFLAGS="-O3 -mtune=sapphirerapids" PREFIX=$INSTALL_DIR/lz4 install
+make -j$(nproc) CC=$(which clang) CXX=$(which clang++) CXXFLAGS="-O3 -mtune=znver1" CFLAGS="-O3 -mtune=znver1" PREFIX=$INSTALL_DIR/lz4
+make -j$(nproc) CC=$(which clang) CXX=$(which clang++) CXXFLAGS="-O3 -mtune=znver1" CFLAGS="-O3 -mtune=znver1" PREFIX=$INSTALL_DIR/lz4 install
 
 cd $SB_DIR
 
@@ -115,7 +126,7 @@ git clone https://github.com/facebook/zstd.git zstd-src
 cd zstd-src
 git checkout v1.5.7
 
-cmake -B build -S build/cmake -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE="Release" -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR/zstd" -DCMAKE_C_FLAGS="-O3 -mtune=sapphirerapids" -DCMAKE_CXX_FLAGS="-O3 -mtune=sapphirerapids"
+cmake -B build -S build/cmake -G Ninja -DCMAKE_C_COMPILER=$(which clang) -DCMAKE_CXX_COMPILER=$(which clang++) -DCMAKE_BUILD_TYPE="Release" -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR/zstd" -DCMAKE_C_FLAGS="-O3 -mtune=znver1" -DCMAKE_CXX_FLAGS="-O3 -mtune=znver1"
 cmake --build build --parallel -j$(nproc)
 cmake --install build
 
@@ -127,7 +138,7 @@ wget https://ftp.postgresql.org/pub/source/v17.5/postgresql-17.5.tar.gz
 tar -xf postgresql-17.5.tar.gz
 cd postgresql-17.5
 
-CC=clang CFLAGS="-O3 -mtune=sapphirerapids" CXX=clang++ CXXFLAGS="-O3 -mtune=sapphirerapids" ./configure --prefix=$INSTALL_DIR/postgresql --with-llvm --without-readline --with-openssl --with-lz4
+CC=$(which clang) CFLAGS="-O3 -mtune=znver1" CXX=$(which clang++) CXXFLAGS="-O3 -mtune=znver1" ./configure --prefix=$INSTALL_DIR/postgresql --with-llvm --without-readline --with-openssl --with-lz4
 
 make -j$(nproc) all
 make -j$(nproc) check 
@@ -138,8 +149,8 @@ cd $SB_DIR
 git clone https://github.com/timescale/timescaledb timescaledb-src
 cd timescaledb-src
 git checkout 2.20.3
-CC=clang CXX=clang CXXFLAGS="-O3 -mtune=sapphirerapids" CFLAGS="-O3 -mtune=sapphirerapids" ./bootstrap --install-prefix=$INSTALL_DIR/timescaledb -G Ninja
-cmake --build ./build --parallel $(nproc)
+CC=$(which clang) CXX=$(which clang) CXXFLAGS="-O3 -mtune=znver1" CFLAGS="-O3 -mtune=znver1" ./bootstrap --install-prefix=$INSTALL_DIR/timescaledb -G Ninja
+cmake --build ./build --parallel $parallel_compile_job_num
 cmake --install ./build
 
 cd $SB_DIR
@@ -148,12 +159,12 @@ cd $SB_DIR
 wget https://archives.boost.io/release/1.84.0/source/boost_1_84_0.tar.gz
 tar -xf boost_1_84_0.tar.gz
 cd boost_1_84_0/
-CC=clang CXX=clang++ CXXFLAGS="-O3 -mtune=sapphirerapids" CFLAGS="-O3 -mtune=sapphirerapids" ./bootstrap.sh --prefix=$INSTALL_DIR/boost-b2
+CC=$(which clang) CXX=$(which clang++) CXXFLAGS="-O3 -mtune=znver1" CFLAGS="-O3 -mtune=znver1" ./bootstrap.sh --prefix=$INSTALL_DIR/boost-b2
 
-# CC=clang CXX=clang CXXFLAGS="-O3 -mtune=sapphirerapids" CFLAGS="-O3 -mtune=sapphirerapids" ./b2 --prefix=$INSTALL_DIR/boost toolset=clang variant=release link=shared threading=multi --cmakedir=$INSTALL_DIR/boost/cmake
-CC=clang CXX=clang++ CXXFLAGS="-O3 -mtune=sapphirerapids" CFLAGS="-O3 -mtune=sapphirerapids" ./b2 --prefix=$INSTALL_DIR/boost toolset=clang variant=release link=shared threading=multi --cmakedir=$INSTALL_DIR/boost/cmake --with-system
-CC=clang CXX=clang++ CXXFLAGS="-O3 -mtune=sapphirerapids" CFLAGS="-O3 -mtune=sapphirerapids" ./b2 --prefix=$INSTALL_DIR/boost toolset=clang variant=release link=shared threading=multi --cmakedir=$INSTALL_DIR/boost/cmake --with-system build
-CC=clang CXX=clang++ CXXFLAGS="-O3 -mtune=sapphirerapids" CFLAGS="-O3 -mtune=sapphirerapids" ./b2 --prefix=$INSTALL_DIR/boost toolset=clang variant=release link=shared threading=multi --cmakedir=$INSTALL_DIR/boost/cmake --with-system install
+# CC=clang CXX=clang CXXFLAGS="-O3 -mtune=znver1" CFLAGS="-O3 -mtune=znver1" ./b2 --prefix=$INSTALL_DIR/boost toolset=clang variant=release link=shared threading=multi --cmakedir=$INSTALL_DIR/boost/cmake
+CC=clang CXX=clang++ CXXFLAGS="-O3 -mtune=znver1" CFLAGS="-O3 -mtune=znver1" ./b2 --prefix=$INSTALL_DIR/boost toolset=clang variant=release link=shared threading=multi --cmakedir=$INSTALL_DIR/boost/cmake --with-system
+CC=clang CXX=clang++ CXXFLAGS="-O3 -mtune=znver1" CFLAGS="-O3 -mtune=znver1" ./b2 --prefix=$INSTALL_DIR/boost toolset=clang variant=release link=shared threading=multi --cmakedir=$INSTALL_DIR/boost/cmake --with-system build
+CC=clang CXX=clang++ CXXFLAGS="-O3 -mtune=znver1" CFLAGS="-O3 -mtune=znver1" ./b2 --prefix=$INSTALL_DIR/boost toolset=clang variant=release link=shared threading=multi --cmakedir=$INSTALL_DIR/boost/cmake --with-system install
 
 cd $SB_DIR
 
@@ -161,6 +172,6 @@ cd $SB_DIR
 git clone git@github.com:uxlfoundation/oneTBB.git
 cd oneTBB
 git checkout v2021.13.0
-cmake -B build -S . -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR/tbb -DCMAKE_C_FLAGS="-O3 -mtune=znver1" -DCMAKE_CXX_FLAGS="-O3 -mtune=znver1"
-cmake --build build --parallel $(nproc)
+cmake -B build -S . -G Ninja -DCMAKE_C_COMPILER=$(which clang) -DCMAKE_CXX_COMPILER=$(which clang++) -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR/tbb -DCMAKE_C_FLAGS="-O3 -mtune=znver1" -DCMAKE_CXX_FLAGS="-O3 -mtune=znver1"
+cmake --build build --parallel $parallel_compile_job_num
 cmake --install build 
