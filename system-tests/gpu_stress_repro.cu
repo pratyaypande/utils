@@ -1,15 +1,19 @@
 // Purpose:
 // On my GTX 1650 card, I have running into this error on running a somewhat
 // compute-heavy kernel:
-//		"GPU has fallen off the bus" (Xid 79) / cudaErrorUnknown(999)
+//		"GPU has fallen off the bus" (Xid 79) / cudaErrorUnknown(999)"
 // 
-// One observation is that the GPU falls off when ramping-up beyond 15-17 W. This 
-// is more of a standalone test to confirm this behaviour.
 // Exceptions on the line of: cudaErrorInvalidDevice(101) are seen.
+// One observation is that the GPU falls off when ramping-up beyond 15-17 W. This file
+// is more of a reduced standalone test to confirm this behaviour.
+//
+// Following this, the laptop does not restart. Booting halts. After a couple of restarts,
+// boot into safe-mode, run `update-grub`, shutdown and start again. Issue goes away and 
+// GPU is up again.
 //
 // Hypothesis being tested: 
 // The failure is triggered by concurrent multi-threaded, multi-stream GPU usage with
-// rapid alloc/free + stream create/destroy. THis could be causing a
+// rapid alloc/free + stream create/destroy. The suspicion is that it could be causing a
 // sudden idle -> full-load power transition across many SMs simultaneously, which my
 // laptop's GPU (GTX 1650, no supplementary PCIe power connector) may not tolerate well.
 //
@@ -25,7 +29,7 @@
 // Running with these parameters causes the issue:
 //		 ./gpu_stress 16 2000 4000000 20000
 //
-// So far, my laptop is indicating that I need a new laptop. :(
+// So far, the laptop is telling me that I need a new one. :(
 
 #include <cuda_runtime.h>
 #include <atomic>
