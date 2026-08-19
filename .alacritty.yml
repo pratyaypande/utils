@@ -27,6 +27,8 @@ colors:
     foreground: '0xCAD3F5'
 font:
   size: 8.5
+# Interview:
+# size: 12
   offset:
     x: 0   # horizontal gap between characters; try -1 to tighten
     y: -2   # vertical gap between lines; try -1 or -2 to tighten
@@ -45,11 +47,14 @@ font:
 window:
   opacity: 1
   dimensions:
-    columns: 130
-    lines: 35
+    columns: 190
+    lines: 50
   padding:
     x: 5
     y: 5
+  position:
+    x: 300
+    y: 100
 key_bindings:
   - key: F11
     action: ToggleFullscreen
