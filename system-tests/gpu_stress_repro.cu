@@ -33,6 +33,7 @@
 
 #include <cuda_runtime.h>
 #include <atomic>
+#include <barrier>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
