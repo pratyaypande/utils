@@ -49,5 +49,10 @@ vim.keymap.set('t', '<Esc>', '<C-\\><C-n>', {
 vim.api.nvim_set_hl(0, "String", { fg = '#7A73E6', bold = true, italic = false })
 vim.api.nvim_set_hl(0, "Comment", { fg = "#808080", italic = false })
 
+-- Code should not go beyond 90 characters in a single line
+vim.opt.colorcolumn = "90"
+
+vim.opt.runtimepath:append(vim.fn.expand("~/.local/cmake/share/vim/vimfiles"))
+
 -- :tnoremap <Esc> <C-\><C-n>
 

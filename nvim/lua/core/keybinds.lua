@@ -38,3 +38,30 @@ vim.api.nvim_create_autocmd('LspAttach', {
     end, opts)
   end,
 })
+
+-- State flag controlling auto-hover
+local auto_hover_enabled = true
+
+-- Dedicated augroup so we can manage this cleanly
+local hover_group = vim.api.nvim_create_augroup('AutoHover', { clear = true })
+
+vim.api.nvim_create_autocmd("CursorHold", {
+  group = hover_group,
+  pattern = { "*.c", "*.cpp", "*.h", "*.hpp" },
+  callback = function()
+    if auto_hover_enabled then
+      vim.lsp.buf.hover()
+    end
+  end,
+})
+
+vim.o.updatetime = 500
+
+-- Manual hover trigger (always works, regardless of toggle state)
+vim.keymap.set('n', 'K', vim.lsp.buf.hover, { desc = 'LSP hover documentation' })
+
+-- Toggle auto-hover on/off
+vim.keymap.set('n', '<leader>de', function()
+  auto_hover_enabled = not auto_hover_enabled
+  vim.notify('Auto-hover ' .. (auto_hover_enabled and 'enabled' or 'disabled'))
+end, { desc = 'Toggle auto-hover on CursorHold' })

@@ -28,7 +28,8 @@ local function get_lang_server_details()
   return {
     -- lsp with specific config
     -- lua_ls = { settings = lua_lsp_settings },
-    clangd = { on_attach = SetupClangExtn },
+    clangd = { on_attach = SetupClangExtn, 
+			   cmd = {"clangd", "--j=1", "--completion-style=bundled", "--background-index", "--pch-storage=disk"} },
     -- lsp with generic config (includes auto-complete ability)
     pyright = {},
   }
