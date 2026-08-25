@@ -270,3 +270,6 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
 export H=$HOME
+
+# opencode
+export PATH=/home/pratyay/.opencode/bin:$PATH
