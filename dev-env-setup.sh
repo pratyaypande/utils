@@ -1,9 +1,10 @@
 #!/bin/bash
 
 # echo Check the script and remove this line...
-exit 1 
-echo -------- Checking if GNU Make exists: $(which make 2>/dev/null || echo No... Bailing since further builds will fail. && return 1)
-SB_DIR=$H
+echo -------- Checking if GNU Make exists: $(which make 2>/dev/null || echo No... Bailing since further builds will fail. && exit 1)
+
+sudo dnf install bison icu libicu-devel m4 flex zlib
+SB_DIR=/home/pratyay
 INSTALL_DIR=$SB_DIR/.local
 LOG_DIR=$SB_DIR/.logs
 
@@ -13,20 +14,12 @@ cd $SB_DIR
 export parallel_compile_jobs_num=$(nproc)
 export parallel_link_jobs_num=$(expr $parallel_compile_job_num / 8)
 
-echo -------- Checking if clang exists: $(which clang 2>/dev/null || echo No... clang and lld will be installed.)
-clang_location=$(which clang++ || which gcc++ || )
-# echo -------- Checking if ninja exists: $(which ninja 2>/dev/null || echo No... ninja will be installed.)
-ninja_location=$(which ninja)
-# echo -------- Checking if clang exists: $(which nvim 2>/dev/null || echo No... neovim will be installed.)
-nvim_location=$(which nvim)
-
 echo ---- Setting up clang ----
 
 echo -------- Cloning llvm ...
 rm -rf llvm-src
-git clone git@github.com:llvm/llvm-project.git llvm-src 2>&1 > $LOG_DIR/clone-llvm.log
+git clone --depth 1 --branch llvmorg-22.1.8 git@github.com:llvm/llvm-project.git llvm-src
 cd llvm-src
-git checkout llvmorg-22.1.8 # use a release version: 21.0.0
 	
 echo -------- Configuring LLVM. Projects: clang and lld. This will take almost 5 minutes...
 # Use GNU Make as it will be there in 
@@ -42,7 +35,7 @@ cmake -G 'Ninja' -B $PWD/build/Release -S $PWD/llvm                      \
 	-DLLVM_ENABLE_LTO=ON                                                 \
 	-DLLVM_ENABLE_PIC=ON                                                 \
 	-DBUILD_SHARED_LIBS=ON                                               \
-	-DLLVM_TARGETS_TO_BUILD="AMDGPU;X86"                                 \
+	-DLLVM_TARGETS_TO_BUILD="X86"                                 \
 	-DLLVM_PARALLEL_COMPILE_JOBS=$parallel_compile_job_num               \
 	-DLLVM_PARALLEL_LINK_JOBS=$parallel_link_jobs_num                    \
 	-DLLVM_OPTIMIZED_TABLEGEN=TRUE                                       \
@@ -56,6 +49,7 @@ cmake --install $PWD/build/Release 2>&1 > $LOG_DIR/cmake-install-llvm.log
 	
 cd $SB_DIR
 echo ---- Done installing clang
+exit
 
 echo ---- Setting up ninja
 
@@ -98,7 +92,7 @@ cd $SB_DIR
 echo ---- Setting up neovim
 echo -------- Cloning neovim ...
 rm -rf nvim-src
-git clone https://github.com/pratyay-p/neovim.git nvim-src
+git clone --depth 1 --branch v0.12.5 git@github.com:neovim/neovim.git nvim-src
 cd nvim-src
 
 echo -------- Configuring neovim
