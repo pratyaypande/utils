@@ -1,0 +1,75 @@
+[colors.hints.end]
+background = "0xA5ADCB"
+foreground = "0x24273A"
+
+[colors.hints.start]
+background = "0xEED49F"
+foreground = "0x24273A"
+
+[[colors.indexed_colors]]
+color = "0xF5A97F"
+index = 16
+
+[[colors.indexed_colors]]
+color = "0xF4DBD6"
+index = 17
+
+[colors.normal]
+black = "0x494D64"
+blue = "0x8AADF4"
+cyan = "0x8BD5CA"
+green = "0xA6DA95"
+magenta = "0xF5BDE6"
+red = "0xED8796"
+white = "0xB8C0E0"
+yellow = "0xEED49F"
+
+[colors.primary]
+background = "0x1f0102"
+bright_foreground = "0xCAD3F5"
+dim_foreground = "0xCAD3F5"
+foreground = "0xCAD3F5"
+
+[font]
+size = 9
+
+[font.bold]
+family = "JetBrains Mono"
+style = "ExtraBold"
+
+[font.glyph_offset]
+x = 0
+y = 0
+
+[font.italic]
+family = "JetBrains Mono"
+style = "Italic"
+
+[font.normal]
+family = "JetBrains Mono"
+style = "Bold"
+
+[font.offset]
+x = 0
+y = -2
+
+[[keyboard.bindings]]
+action = "ToggleFullscreen"
+key = "F11"
+
+[window]
+opacity = 1
+
+[window.dimensions]
+columns = 190
+lines = 50
+
+[window.padding]
+x = 5
+y = 5
+
+[window.position]
+x = 300
+y = 100
+
+[keyboard]
