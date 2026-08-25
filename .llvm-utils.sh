@@ -14,7 +14,7 @@ function llvm_check_all_release() {
     fi
 
     # Verify that the repo is indeed llvm-project
-    if ! git -C "$dir" remote -v | grep -q "/llvm-project.git"; then
+    if ! git -C "$dir" remote -v | grep -q -e "/llvm-project.git" -e "/llvm-src.git"; then
         echo "Error: The detected Git repository is not llvm-project."
         return 1
     fi
@@ -49,7 +49,7 @@ function llvm_configure_release_x86() {
     fi
 
     # Verify that the repo is indeed llvm-project
-    if ! git -C "$dir" remote -v | grep -q "/llvm-project.git"; then
+    if ! git -C "$dir" remote -v | grep -q -e "/llvm-project.git" -e "/llvm-src.git"; then
         echo "Error: The detected Git repository is not llvm-project."
         return 1
     fi
@@ -60,14 +60,14 @@ function llvm_configure_release_x86() {
     parallel_link_job_num=$(expr $parallel_compile_job_num / 8)
 
     # Run the CMake command
-    cmake -G 'Unix Makefiles' -B "$my_workspace_dir/build/Release" -S "$my_workspace_dir/llvm" \
+    cmake -G 'Ninja' -B "$my_workspace_dir/build/Release" -S "$my_workspace_dir/llvm" \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
         -DCMAKE_INSTALL_PREFIX="$my_workspace_dir/install/Release" \
         -DLLVM_ENABLE_PROJECTS="clang" \
         -DLLVM_ENABLE_ASSERTIONS=ON \
         -DBUILD_SHARED_LIBS=ON \
-        -DLLVM_TARGETS_TO_BUILD="X86" \
+        -DLLVM_TARGETS_TO_BUILD="X86;AMDGPU" \
         -DLLVM_PARALLEL_COMPILE_JOBS=$parallel_compile_job_num \
         -DLLVM_PARALLEL_LINK_JOBS=$parallel_link_job_num \
         -DLLVM_OPTIMIZED_TABLEGEN=TRUE
@@ -77,7 +77,7 @@ function llvm_configure_release_x86() {
     cd $original_dir
 
     # generate .clangd files
-    echo -e "CompileFlags:\n  CompilationDatabase: $my_workspace_dir/build/Release/compile_commands.json" > .clangd
+    echo -e "CompileFlags:\n  CompilationDatabase: $my_workspace_dir/build/Release" > .clangd
 }
 
 function clone_llvm_upstream_here() {
@@ -100,7 +100,7 @@ function llvm_configure_release_all() {
     fi
 
     # Verify that the repo is indeed llvm-project
-    if ! git -C "$dir" remote -v | grep -q "/llvm-project.git"; then
+    if ! git -C "$dir" remote -v | grep -q -e "/llvm-project.git" -e "/llvm-src.git"; then
         echo "Error: The detected Git repository is not llvm-project."
         return 1
     fi
@@ -111,7 +111,7 @@ function llvm_configure_release_all() {
     parallel_link_job_num=$(expr $parallel_compile_job_num / 8)
 
     # Run the CMake command
-    cmake -G 'Unix Makefiles' -B "$my_workspace_dir/build/Release" -S "$my_workspace_dir/llvm" \
+    cmake -G 'Ninja' -B "$my_workspace_dir/build/Release" -S "$my_workspace_dir/llvm" \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
         -DCMAKE_INSTALL_PREFIX="$my_workspace_dir/install/Release" \
@@ -128,7 +128,7 @@ function llvm_configure_release_all() {
     cd $original_dir
 
     # generate .clangd files
-    echo -e "CompileFlags:\n  CompilationDatabase: $my_workspace_dir/build/Release/compile_commands.json" > .clangd
+    echo -e "CompileFlags:\n  CompilationDatabase: $my_workspace_dir/build/Release" > .clangd
 }
 
 function llvm_configure_debug_x86() {
@@ -145,16 +145,19 @@ function llvm_configure_debug_x86() {
     fi
 
     # Verify that the repo is indeed llvm-project
-    if ! git -C "$dir" remote -v | grep -q "/llvm-project.git"; then
+    if ! git -C "$dir" remote -v | grep -q -e "/llvm-project.git" -e "/llvm-src.git"; then
         echo "Error: The detected Git repository is not llvm-project."
         return 1
     fi
 
+    parallel_compile_job_num=$(nproc)
+    parallel_link_job_num=$(expr $parallel_compile_job_num / 8)
+
     export my_workspace_dir="$dir"
 
     # Run the CMake command
-    cmake -G 'Unix Makefiles' -B "$my_workspace_dir/build/Debug" -S "$my_workspace_dir/llvm" \
-        -DCMAKE_BUILD_TYPE=Release \
+    cmake -G 'Ninja' -B "$my_workspace_dir/build/Debug" -S "$my_workspace_dir/llvm" \
+        -DCMAKE_BUILD_TYPE=Debug \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
         -DCMAKE_INSTALL_PREFIX="$my_workspace_dir/install/Debug" \
         -DLLVM_ENABLE_PROJECTS="clang" \
@@ -170,7 +173,105 @@ function llvm_configure_debug_x86() {
     cd $original_dir
 
     # generate .clangd files
-    echo -e "CompileFlags:\n  CompilationDatabase: $my_workspace_dir/build/Debug/compile_commands.json" > .clangd
+    echo -e "CompileFlags:\n  CompilationDatabase: $my_workspace_dir/build/Debug" > .clangd
+}
+
+function llvm_configure_alive2_x86() {
+    # Find the root of the llvm-project
+    local dir="$(pwd)"
+    local original_dir="$(pwd)"
+    while [ ! -d "$dir/.git" ] && [ "$dir" != "/" ]; do
+        dir=$(dirname "$dir")
+    done
+
+    if [ "$dir" == "/" ]; then
+        echo "Error: Could not find llvm-project root."
+        return 1
+    fi
+
+    # Verify that the repo is indeed llvm-project
+    if ! git -C "$dir" remote -v | grep -q -e "/llvm-project.git" -e "/llvm-src.git"; then
+        echo "Error: The detected Git repository is not llvm-project."
+        return 1
+    fi
+
+    parallel_compile_job_num=$(nproc)
+    parallel_link_job_num=$(expr $parallel_compile_job_num / 8)
+
+    export my_workspace_dir="$dir"
+
+    # Run the CMake command
+    cmake -G 'Ninja' -B "$my_workspace_dir/build/ReleaseAlive2" -S "$my_workspace_dir/llvm" \
+		-DCMAKE_C_COMPILER=$(which clang) \
+		-DCMAKE_CXX_COMPILER=$(which clang++) \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DLLVM_ENABLE_RTTI=ON \
+        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+        -DCMAKE_INSTALL_PREFIX="$my_workspace_dir/install/ReleaseAlive2" \
+        -DLLVM_ENABLE_PROJECTS="llvm;clang" \
+        -DLLVM_ENABLE_ASSERTIONS=ON \
+        -DBUILD_SHARED_LIBS=ON \
+        -DLLVM_TARGETS_TO_BUILD="X86" \
+        -DLLVM_PARALLEL_COMPILE_JOBS=$parallel_compile_job_num \
+        -DLLVM_PARALLEL_LINK_JOBS=$parallel_link_job_num \
+        -DLLVM_OPTIMIZED_TABLEGEN=TRUE
+
+	# now once that is done, clone and compile alive2 from the fork.
+	# Why? There might be breaking changes, and the last release was a year ago
+	cd build
+
+	git clone git@github.com:pratyaypande/alive2.git alive2-src
+	cd alive2-src
+	cmake -G Ninja -B ../build-alive2 \
+		-DCMAKE_PREFIX_PATH="$my_workspace_dir/build/ReleaseAlive2" \
+		-DBUILD_TV=ON \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_C_FLAGS="-O3 -march=native" \
+		-DCMAKE_CXX_FLAGS="-O3 -march=native" \
+		-DBUILD_SHARED_LIBS=ON
+
+    # go back to the original directory
+    cd $original_dir
+
+    # generate .clangd files
+    echo -e "CompileFlags:\n  CompilationDatabase: $my_workspace_dir/build/Debug" > .clangd
+}
+
+
+function llvm_build_alive2_x86() {
+    # Find the root of the llvm-project
+    local dir="$(pwd)"
+    local original_dir="$(pwd)"
+    while [ ! -d "$dir/.git" ] && [ "$dir" != "/" ]; do
+        dir=$(dirname "$dir")
+    done
+
+    if [ "$dir" == "/" ]; then
+        echo "Error: Could not find llvm-project root."
+        return 1
+    fi
+
+    # Verify that the repo is indeed llvm-project
+    if ! git -C "$dir" remote -v | grep -q -e "/llvm-project.git" -e "/llvm-src.git"; then
+        echo "Error: The detected Git repository is not llvm-project."
+        return 1
+    fi
+
+    parallel_compile_job_num=$(nproc)
+    parallel_link_job_num=$(expr $parallel_compile_job_num / 8)
+
+    export my_workspace_dir="$dir"
+
+	# Compile here
+    cmake --build "$my_workspace_dir/build/ReleaseAlive2" --parallel $parallel_compile_job_num
+
+	cmake --build "$my_workspace_dir/build/build-alive2" --parallel $parallel_compile_job_num
+
+    # go back to the original directory
+    cd $original_dir
+
+    # generate .clangd files
+    echo -e "CompileFlags:\n  CompilationDatabase: $my_workspace_dir/build/Debug" > .clangd
 }
 
 function llvm_build_release() {
@@ -187,7 +288,7 @@ function llvm_build_release() {
     fi
 
     # verify that the repo is indeed llvm-project
-    if ! git -C "$dir" remote -v | grep -q "/llvm-project.git"; then
+    if ! git -C "$dir" remote -v | grep -q -e "/llvm-project.git" -e "/llvm-src.git"; then
         echo "error: the detected git repository is not llvm-project."
         return 1
     fi
@@ -210,19 +311,19 @@ function llvm_build_debug() {
 
     if [ "$dir" == "/" ]; then
         echo "error: could not find llvm-project root."
-        return 1
+        # return 1
     fi
 
     # verify that the repo is indeed llvm-project
-    if ! git -C "$dir" remote -v | grep -q "/llvm-project.git"; then
+    if ! git -C "$dir" remote -v | grep -q -e "/llvm-project.git" -e "/llvm-src.git"; then
         echo "error: the detected git repository is not llvm-project."
-        return 1
+        # return 1
     fi
 
     export my_workspace_dir="$dir"
 
     # run the compilation command
-    cmake --build "$my_workspace_dir/build/Debug" --parallel $(nproc)
+    cmake --build "$my_workspace_dir/build/Debug" --parallel 6
 
     cd $original_dir
 }
@@ -241,7 +342,7 @@ function llvm_install_release() {
     fi
 
     # Verify that the repo is indeed llvm-project
-    if ! git -C "$dir" remote -v | grep -q "/llvm-project.git"; then
+    if ! git -C "$dir" remote -v | grep -q -e "/llvm-project.git" -e "/llvm-src.git"; then
         echo "Error: The detected Git repository is not llvm-project."
         return 1
     fi
@@ -272,7 +373,7 @@ function llvm_install_debug() {
     fi
 
     # Verify that the repo is indeed llvm-project
-    if ! git -C "$dir" remote -v | grep -q "/llvm-project.git"; then
+    if ! git -C "$dir" remote -v | grep -q -e "/llvm-project.git" -e "/llvm-src.git"; then
         echo "Error: The detected Git repository is not llvm-project."
         return 1
     fi
@@ -293,36 +394,24 @@ function llvm_local_install() {
     # Clone the repository
     git clone https://github.com/llvm/llvm-project.git llvm-src
     cd llvm-src
-    git checkout llvmorg-20.1.7
+    git checkout llvmorg-20.1.5
     export my_workspace_dir="$(pwd)"
 
-    # Run the CMake command for clang
-    cmake -G 'Unix Makefiles' -B "$my_workspace_dir/build/Release" -S "$my_workspace_dir/llvm" \
-        -DCMAKE_C_COMPILER=`which gcc` \
-        -DCMAKE_CXX_COMPILER=`which g++` \
+    # Run the CMake command
+    cmake -G 'Ninja' -B "$my_workspace_dir/build/Release" -S "$my_workspace_dir/llvm" \
         -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_EXPORT_COMPILE_COMMANDS=OFF \
-        -DCMAKE_INSTALL_PREFIX="/export/users/pratyayp/.local/llvm" \
-        -DLLVM_ENABLE_PROJECTS="clang;lld;openmp;clang-tools-extra" \
+        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+        -DCMAKE_INSTALL_PREFIX="$HOME/.local/llvm" \
+        -DLLVM_ENABLE_PROJECTS="clang;lld;clang-tools-extra" \
         -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind;compiler-rt" \
-        -DCMAKE_C_FLAGS="-O3 -mtune=sapphirerapids" \
-        -DCMAKE_CXX_FLAGS="-O3 -mtune=sapphirerapids" \
-        -DLLVM_ENABLE_ASSERTIONS=OFF \
-        -DLLVM_BUILD_LLVM_DYLIB=ON \
-        -DLLVM_TARGETS_TO_BUILD="AMDGPU;NVPTX;X86" \
-        -DLLVM_INCLUDE_BENCHMARKS=0 \
-        -DLLVM_INCLUDE_EXAMPLES=0 \
-        -DLLVM_INCLUDE_TESTS=0 \
-        -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON \
-        -DCMAKE_INSTALL_RPATH="/export/users/pratyayp/.local/llvm/lib" \
-        -DLLVM_ENABLE_OCAMLDOC=OFF \
-        -DLLVM_ENABLE_BINDINGS=OFF \
-        -DLLVM_TEMPORARILY_ALLOW_OLD_TOOLCHAIN=OFF \
+        -DCMAKE_C_FLAGS="-O3 -march=native" \
+        -DCMAKE_CXX_FLAGS="-O3 -march=native" \
+        -DLLVM_ENABLE_ASSERTIONS=ON \
+        -DBUILD_SHARED_LIBS=ON \
+        -DLLVM_TARGETS_TO_BUILD="X86" \
         -DLLVM_PARALLEL_COMPILE_JOBS=$parallel_compile_job_num \
         -DLLVM_PARALLEL_LINK_JOBS=$parallel_link_job_num \
-        -DLLVM_OPTIMIZED_TABLEGEN=TRUE \
-        -DOPENMP_ENABLE_LIBOMPTARGET=OFF \
-        -DLLVM_ENABLE_DUMP=OFF
+        -DLLVM_OPTIMIZED_TABLEGEN=TRUE
 
     # run the compilation command
     cmake --build "$my_workspace_dir/build/Release" --parallel $(nproc)
@@ -332,10 +421,6 @@ function llvm_local_install() {
 
     # go back to the original directory
     cd ..
-
-    # remove the repository and build files
-    rm -rf llvm-src
-
 }
 
 function llvm_setenv_debug() {
@@ -352,7 +437,7 @@ function llvm_setenv_debug() {
     fi
 
     # Verify that the repo is indeed llvm-project
-    if ! git -C "$dir" remote -v | grep -q "/llvm-project.git"; then
+    if ! git -C "$dir" remote -v | grep -q -e "/llvm-project.git" -e "/llvm-src.git"; then
         echo "Error: The detected Git repository is not llvm-project."
         return 1
     fi
@@ -380,7 +465,7 @@ function llvm_setenv_release() {
     fi
 
     # Verify that the repo is indeed llvm-project
-    if ! git -C "$dir" remote -v | grep -q "/llvm-project.git"; then
+    if ! git -C "$dir" remote -v | grep -q -e "/llvm-project.git" -e "/llvm-src.git"; then
         echo "Error: The detected Git repository is not llvm-project."
         return 1
     fi
@@ -394,31 +479,6 @@ function llvm_setenv_release() {
 
 }
 
-function llvm_local_intel_install() {
-    wget https://github.com/intel/llvm/releases/download/v6.1.0/linux-sycl-6.1.0.tar.gz
-    tar -xf linux-sycl-6.1.0.tar.gz
-
-
-    git clone https://github.com/intel/llvm.git -b sycl intel-llvm
-    export DPCPP_HOME="$(pwd)"
-    cd intel-llvm
-    git checkout v6.1.0
-    python3 $DPCPP_HOME/intel-llvm/buildbot/configure.py \
-        --shared-libs \
-        -o $DPCPP_HOME/intel-llvm/build \
-        -t "Release" \
-        --cmake-gen "Ninja" \
-        --cmake-opt "-DCMAKE_EXPORT_COMPILE_COMMANDS=OFF \
-                     -DCMAKE_VERBOSE_MAKEFILE=ON \
-                     -DCMAKE_INSTALL_PREFIX=\"/export/users/pratyayp/.local/llvm\" \
-                     -DLLVM_ENABLE_RUNTIMES=\"libcxx;libcxxabi;libunwind;compiler-rt\" \
-                     -DCMAKE_C_FLAGS=\"-O3 -mtune=sapphirerapids\" \
-                     -DCMAKE_CXX_FLAGS=\"-O3 -mtune=sapphirerapids\" \
-                     -DLLVM_OPTIMIZED_TABLEGEN=ON \
-                     -DLLVM_USE_STATIC_ZSTD=OFF " \
-        --llvm-external-projects "clang,lld,openmp,clang-tools-extra"
-    python3 $DPCPP_HOME/intel-llvm/buildbot/compile.py -o $DPCPP_HOME/intel-llvm/build --build-parallelism $(nproc)
-}
 
 export llvm_install_release_x86
 export llvm_configure_release_x86
@@ -433,7 +493,3 @@ export llvm_configure_release_all
 
 export llvm_setenv_debug
 export llvm_setenv_release
-export llvm_local_intel_install
-
-
-
