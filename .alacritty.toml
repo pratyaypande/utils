@@ -32,6 +32,8 @@ foreground = "0xCAD3F5"
 
 [font]
 size = 9
+# Interview
+# size = 12
 
 [font.bold]
 family = "JetBrains Mono"
@@ -58,6 +60,8 @@ action = "ToggleFullscreen"
 key = "F11"
 
 [window]
+title = "Terminal"
+dynamic_title = false
 opacity = 1
 
 [window.dimensions]
