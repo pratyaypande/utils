@@ -554,6 +554,33 @@ function llvm_setenv_release() {
 
 }
 
+function llvm_setenv_dev() {
+    # Find the root of the llvm-project
+    local dir="$(pwd)"
+    local original_dir="$(pwd)"
+    while [ ! -d "$dir/.git" ] && [ "$dir" != "/" ]; do
+        dir=$(dirname "$dir")
+    done
+
+    if [ "$dir" == "/" ]; then
+        echo "Error: Could not find llvm-project root."
+        return 1
+    fi
+
+    # Verify that the repo is indeed llvm-project
+    if ! git -C "$dir" remote -v | grep -q -e "/llvm-project.git" -e "/llvm-src.git"; then
+        echo "Error: The detected Git repository is not llvm-project."
+        return 1
+    fi
+
+    export my_workspace_dir="$dir"
+
+    export PATH=$my_workspace_dir/build/RelWithDebInfo/bin:$PATH
+    export LD_LIBRARY_PATH=$my_workspace_dir/build/RelWithDebInfo/lib:$PATH
+
+    cd $original_dir
+
+}
 
 export llvm_install_release_x86
 export llvm_configure_release_x86
@@ -568,3 +595,4 @@ export llvm_configure_release_all
 
 export llvm_setenv_debug
 export llvm_setenv_release
+export llvm_setenv_dev
