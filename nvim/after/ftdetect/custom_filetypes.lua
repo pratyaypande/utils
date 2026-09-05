@@ -6,13 +6,15 @@ vim.filetype.add({
     ["%.vuerc$"] = "json",
     ["%.bashrc.*"] = "bash",
     ["%.profile.*"] = "bash",
-    ["%.i$"] = "cpp"
+    ["%.i$"] = "cpp",
+    ["%.cl$"] = "opencl"
   },
   extension = {
     inc = "cpp",
     def = "cpp",
     td = "tablegen",
     ast = "clangast",
-    ll = "llvmir"
+    ll = "llvmir",
+    cl = "opencl"
   }
 })
