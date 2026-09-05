@@ -23,8 +23,9 @@ return {
         options = {
           icons_enabled = true, theme = "onedark",
         },
-        section = {
-          lualine_a = { 'filename', file_status = true, path = 2, }
+        sections = {
+          lualine_a = { "mode" },
+          -- lualine_b = { 'filename', file_status = true, path = 2, }
         },
       },
     },
