@@ -40,7 +40,7 @@ vim.api.nvim_create_autocmd('LspAttach', {
 })
 
 -- State flag controlling auto-hover
-local auto_hover_enabled = true
+local auto_hover_enabled = false
 
 -- Dedicated augroup so we can manage this cleanly
 local hover_group = vim.api.nvim_create_augroup('AutoHover', { clear = true })
