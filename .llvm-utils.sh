@@ -34,7 +34,6 @@ function llvm_check_all_release() {
     cd $original_dir
   }
 
-
 function llvm_configure_release_x86() {
     # Find the root of the llvm-project
     local dir="$(pwd)"
@@ -62,12 +61,61 @@ function llvm_configure_release_x86() {
     # Run the CMake command
     cmake -G 'Ninja' -B "$my_workspace_dir/build/Release" -S "$my_workspace_dir/llvm" \
         -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_C_COMPILER=$(which clang) \
+        -DCMAKE_CXX_COMPILER=$(which clang++) \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
         -DCMAKE_INSTALL_PREFIX="$my_workspace_dir/install/Release" \
         -DLLVM_ENABLE_PROJECTS="clang" \
         -DLLVM_ENABLE_ASSERTIONS=ON \
         -DBUILD_SHARED_LIBS=ON \
-        -DLLVM_TARGETS_TO_BUILD="X86;AMDGPU" \
+        -DLLVM_TARGETS_TO_BUILD="X86" \
+        -DLLVM_PARALLEL_COMPILE_JOBS=$parallel_compile_job_num \
+        -DLLVM_PARALLEL_LINK_JOBS=$parallel_link_job_num \
+        -DLLVM_OPTIMIZED_TABLEGEN=TRUE
+        #-DLLVM_ENABLE_RUNTIMES="libunwind;compiler-rt" 
+
+    # go back to the original directory
+    cd $original_dir
+
+    # generate .clangd files
+    echo -e "CompileFlags:\n  CompilationDatabase: $my_workspace_dir/build/Release" > .clangd
+}
+
+function llvm_configure_release_NVPTX() {
+    # Find the root of the llvm-project
+    local dir="$(pwd)"
+    local original_dir="$(pwd)"
+    while [ ! -d "$dir/.git" ] && [ "$dir" != "/" ]; do
+        dir=$(dirname "$dir")
+    done
+
+    if [ "$dir" == "/" ]; then
+        echo "Error: Could not find llvm-project root."
+        return 1
+    fi
+
+    # Verify that the repo is indeed llvm-project
+    if ! git -C "$dir" remote -v | grep -q -e "/llvm-project.git" -e "/llvm-src.git"; then
+        echo "Error: The detected Git repository is not llvm-project."
+        return 1
+    fi
+
+    export my_workspace_dir="$dir"
+
+    parallel_compile_job_num=$(nproc)
+    parallel_link_job_num=2
+
+    # Run the CMake command
+    cmake -G 'Ninja' -B "$my_workspace_dir/build/Release" -S "$my_workspace_dir/llvm" \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_C_COMPILER=$(which clang) \
+        -DCMAKE_CXX_COMPILER=$(which clang++) \
+        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+        -DCMAKE_INSTALL_PREFIX="$my_workspace_dir/install/Release" \
+        -DLLVM_ENABLE_PROJECTS="clang" \
+        -DLLVM_ENABLE_ASSERTIONS=ON \
+        -DBUILD_SHARED_LIBS=ON \
+        -DLLVM_TARGETS_TO_BUILD="X86" \
         -DLLVM_PARALLEL_COMPILE_JOBS=$parallel_compile_job_num \
         -DLLVM_PARALLEL_LINK_JOBS=$parallel_link_job_num \
         -DLLVM_OPTIMIZED_TABLEGEN=TRUE
@@ -81,8 +129,8 @@ function llvm_configure_release_x86() {
 }
 
 function clone_llvm_upstream_here() {
-  local clone_name=${1:-llvm-cmplr}
-  git clone https://github.com/pratyay-p/llvm-project.git $clone_name
+  local clone_name=${1:-llvm-project}
+  git clone git@github.com:pratyaypande/llvm-project.git $clone_name
   cd $clone_name
 }
 
@@ -118,7 +166,7 @@ function llvm_configure_release_all() {
         -DLLVM_ENABLE_PROJECTS="clang" \
         -DLLVM_ENABLE_ASSERTIONS=ON \
         -DBUILD_SHARED_LIBS=ON \
-        -DLLVM_TARGETS_TO_BUILD="X86;NVPTX;PowerPC;AMDGPU;Hexagon" \
+        -DLLVM_TARGETS_TO_BUILD=all \
         -DLLVM_PARALLEL_COMPILE_JOBS=$parallel_compile_job_num \
         -DLLVM_PARALLEL_LINK_JOBS=$parallel_link_job_num \
         -DLLVM_OPTIMIZED_TABLEGEN=TRUE
@@ -203,12 +251,59 @@ function llvm_configure_debug_x86() {
     # Run the CMake command
     cmake -G 'Ninja' -B "$my_workspace_dir/build/Debug" -S "$my_workspace_dir/llvm" \
         -DCMAKE_BUILD_TYPE=Debug \
+        -DCMAKE_C_COMPILER=$(which clang) \
+        -DCMAKE_CXX_COMPILER=$(which clang++) \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
         -DCMAKE_INSTALL_PREFIX="$my_workspace_dir/install/Debug" \
         -DLLVM_ENABLE_PROJECTS="clang" \
         -DLLVM_ENABLE_ASSERTIONS=ON \
         -DBUILD_SHARED_LIBS=ON \
         -DLLVM_TARGETS_TO_BUILD="X86" \
+        -DLLVM_PARALLEL_COMPILE_JOBS=$parallel_compile_job_num \
+        -DLLVM_PARALLEL_LINK_JOBS=$parallel_link_job_num \
+        -DLLVM_OPTIMIZED_TABLEGEN=TRUE
+        # -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind;compiler-rt"
+
+    # go back to the original directory
+    cd $original_dir
+
+    # generate .clangd files
+    echo -e "CompileFlags:\n  CompilationDatabase: $my_workspace_dir/build/Debug" > .clangd
+}
+
+function llvm_configure_debug_NVPTX() {
+    # Find the root of the llvm-project
+    local dir="$(pwd)"
+    local original_dir="$(pwd)"
+    while [ ! -d "$dir/.git" ] && [ "$dir" != "/" ]; do
+        dir=$(dirname "$dir")
+    done
+
+    if [ "$dir" == "/" ]; then
+        echo "Error: Could not find llvm-project root."
+        return 1
+    fi
+
+    # Verify that the repo is indeed llvm-project
+    if ! git -C "$dir" remote -v | grep -q -e "/llvm-project.git" -e "/llvm-src.git"; then
+        echo "Error: The detected Git repository is not llvm-project."
+        return 1
+    fi
+
+    parallel_compile_job_num=$(nproc)
+    parallel_link_job_num=2
+
+    export my_workspace_dir="$dir"
+
+    # Run the CMake command
+    cmake -G 'Ninja' -B "$my_workspace_dir/build/Debug" -S "$my_workspace_dir/llvm" \
+        -DCMAKE_BUILD_TYPE=Debug \
+        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+        -DCMAKE_INSTALL_PREFIX="$my_workspace_dir/install/Debug" \
+        -DLLVM_ENABLE_PROJECTS="clang" \
+        -DLLVM_ENABLE_ASSERTIONS=ON \
+        -DBUILD_SHARED_LIBS=ON \
+        -DLLVM_TARGETS_TO_BUILD="NVPTX" \
         -DLLVM_PARALLEL_COMPILE_JOBS=$parallel_compile_job_num \
         -DLLVM_PARALLEL_LINK_JOBS=$parallel_link_job_num \
         -DLLVM_OPTIMIZED_TABLEGEN=TRUE
@@ -395,7 +490,7 @@ function llvm_build_debug() {
     export my_workspace_dir="$dir"
 
     # run the compilation command
-    cmake --build "$my_workspace_dir/build/Debug" --parallel 6
+    cmake --build "$my_workspace_dir/build/Debug" --parallel $(nproc)
 
     cd $original_dir
 }
