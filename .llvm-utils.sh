@@ -134,6 +134,12 @@ function clone_llvm_upstream_here() {
   cd $clone_name
 }
 
+function llvm_clone_sycl_here_fast() {
+  local clone_name=${1:-sycl}
+  git clone --branch sycl --single-branch --depth 1 git@github.com:/intel/llvm $clone_name
+  cd $clone_name
+}
+
 function llvm_configure_release_all() {
     # Find the root of the llvm-project
     local dir="$(pwd)"
